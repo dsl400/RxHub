@@ -1,0 +1,19 @@
+{
+  "name": "@dsl400/rxhub",
+  "version": "0.0.1",
+  "description": "Utility that provides all necesary tools to stream data in javascript applications",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "rxhub",
+    "rxjs"
+  ],
+  "author": "Valentin Sasek",
+  "license": "MIT",
+  "dependencies": {
+    "rxjs": "^7.8.1"
+  }
+}
