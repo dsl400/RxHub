@@ -1,10 +1,12 @@
 {
   "name": "@dsl400/rxhub",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Utility that provides all necesary tools to stream data in javascript applications",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "build": "tsc",
+    "release": "npm run build && npm publish --access public",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

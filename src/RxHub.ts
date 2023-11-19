@@ -163,7 +163,7 @@ export class RxHub {
              * extract the driver
              */
             const qDriverSplit = q.path.split('://')
-            const driverName = qDriverSplit[0] as keyof typeof this.drivers
+            const driverName = qDriverSplit[0];
             q.driver = qDriverSplit.length > 1 ? this.drivers[driverName] : this.defaultDriver;
 
             /**
