@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-      "moduleResolution": "node",
+      "moduleResolution": "Bundler",
       "module": "ES6",
       "outDir": "./dist",
       // other options...
