@@ -8,10 +8,11 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
-    "release": "npm run build && npm publish",
     "lint": "tsc",
     "dev": "vitest",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ci": "pnpm lint && pnpm test && pnpm build",
+    "release": "pnpm lint && pnpm test && pnpm build && changesets publish"
   },
   "keywords": [
     "rxhub",
