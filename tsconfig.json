@@ -3,7 +3,6 @@
       "moduleResolution": "Bundler",
       "module": "ES6",
       "outDir": "./dist",
-      // other options...
       "noEmit": true
     },
     "include": [

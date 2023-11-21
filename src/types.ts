@@ -4,16 +4,18 @@ import { RxHubDriver } from "./RxHub.Driver"
 
 
 export type RxHubConfig = {
+    appVersion?: string
+    auth?: RxHubAuth
     drivers:{
         [key:string]: RxHubDriver
     }
-    auth: RxHubAuth
-    dialog: RxHubDialog
+    defaultDriver: string
+    dialog?: RxHubDialog
 }
 
 
 
-export type RxHubGet = string | { path: string }
+export type RxHubGet = { path: string }
 
 export type RxHubSet = {
     path: string
@@ -46,6 +48,13 @@ export type RxHubTransfer = RxHubGet | RxHubSet | RxHubUpdate | RxHubList | RxHu
 
 export type RxHubBatch = RxHubTransfer | {
     [key: string]: RxHubTransfer
+}
+
+
+export type RxHubRequest = RxHubTransfer & {
+    ref: string
+    docId: string
+    collection: string
 }
 
 

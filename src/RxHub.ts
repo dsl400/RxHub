@@ -10,39 +10,23 @@ import {
 } from 'rxjs';
 import { RxHubAuth } from './RxHub.Auth';
 import { RxHubDriver } from './RxHub.Driver';
-import { RxHubBatch, RxHubConfig, RxHubGet, RxHubTransfer, RxHubUser } from './types';
+import { RxHubBatch, RxHubConfig, RxHubGet, RxHubRequest, RxHubTransfer, RxHubUser } from './types';
 
-interface RxHubQuery {
-    path: string
-    ref: string
-    id: string
-}
 
 
 export class RxHub {
 
     private drivers: { [key: string]: RxHubDriver } = {}
     private defaultDriver: RxHubDriver
-    private appVersion: string
-    private timeStamp: () => string | number
+    private appVersion
 
     private auth: RxHubAuth
 
 
-    constructor(confing: RxHubConfig) {
-
+    constructor(config: RxHubConfig) {
+        this.defaultDriver = config.drivers[config.defaultDriver]
+        this.appVersion = config.appVersion
     }
-
-
-
-
-    // loadDriver(driver: RxHubDriver) {
-    //     if (this.drivers[driver.tag]) {
-    //         throw `Driver '${driver.tag}' is already loaded `;
-    //     }
-    //     this.drivers[driver.tag] = driver;
-    // }
-
 
     user!: any;
 
@@ -56,9 +40,10 @@ export class RxHub {
 
 
 
+    
     /**
      * 
-     * @param batch 
+     * @param requests 
      * @returns ....
      * 
      * usage:
@@ -92,24 +77,20 @@ export class RxHub {
      * 
      *  
      */
-    stream(batch: RxHubBatch): Observable<any> {
-        return this._stream(batch)
-    }
-
-    private _stream(queries: RxHubBatch, force: boolean = false) {
+    stream(requests: string | RxHubBatch) {
 
         /**
          * this allows the method to be called with a single string argument 
          * ex: this.db2.stream('[driver://]path/to/document')
          */
-        if (typeof queries == 'string') queries = { __data__: { path: queries } } as RxHubBatch;
+        if (typeof requests == 'string') requests = { __data__: { path: requests } } as RxHubBatch;
 
         /**
          * this allows the method to be called for a single transaction
          * ex: this.db2.stream({path:'driver://path/to/document' ....}) 
          */
-        if (typeof queries != 'string' && queries.path) {
-            queries = { __data__: queries } as RxHubBatch;
+        if (typeof requests != 'string' && requests.path) {
+            requests = { __data__: requests } as RxHubBatch;
         }
 
 
@@ -128,11 +109,13 @@ export class RxHub {
          */
         const streamContext: any = {}
 
+        const writeCluster = {}
+
 
         /**
          * for every transaction in batch
          */
-        for (let key in queries as any) {
+        for (let key in requests as any) {
 
 
             // const key = _key as keyof typeof queries;
@@ -140,13 +123,13 @@ export class RxHub {
             /**
              * this will allow us to proxy an observable along side our streams
              */
-            if (isObservable(queries[key])) {
-                read[key] = queries[key] as Observable<any>;
+            if (isObservable(requests[key])) {
+                read[key] = requests[key] as Observable<any>;
                 continue;
             }
 
 
-            let _q: RxHubTransfer = queries[key];
+            let _q: RxHubTransfer = requests[key];
 
             /**
              * this will allow us to accept simple document path as query
@@ -157,7 +140,7 @@ export class RxHub {
                 _q = { ..._q } as RxHubTransfer;
             }
 
-            const q: any = _q as RxHubQuery
+            const q: any = _q as RxHubRequest
 
             /**
              * extract the driver
@@ -248,15 +231,16 @@ export class RxHub {
             } else if (q.count) { //count
                 read[key] = q.driver.count(q)
             } else if (q.set) {//write
-                if (q.path.includes('/Documents/') && !q.set._new) this.setDocAttributes(q.set, q.driver)
+                // if (q.path.includes('/Documents/') && !q.set._new) this.setDocAttributes(q.set, q.driver)
                 write[key] = q.driver.set(q)
             } else if (q.update) { //write
-                if (q.path.includes('/Documents/')) this.updateDocAttributes(q.update, q.driver)
+                // if (q.path.includes('/Documents/')) this.updateDocAttributes(q.update, q.driver)
                 write[key] = q.driver.update(q)
             } else { //read
                 read[key] = q.driver.get(q)
             }
         }
+
 
         /**
          * return if we only have one transaction
@@ -282,6 +266,7 @@ export class RxHub {
          * return if the batch contains only writes 
          */
         if (!reads && writes) return combineLatest(write) as Observable<any>
+
 
 
         /**
@@ -337,15 +322,7 @@ export class RxHub {
     }
 
 
-    /**
-     * 
-     * @param driver 
-     * @returns 
-     */
-    serverTimestamp(driver = this.defaultDriver) {
-        return driver.serverTimestamp()
-    }
-
+   
 
     /**
      * 
@@ -357,73 +334,9 @@ export class RxHub {
     }
 
 
-    /**
-     * 
-     * @param t 
-     * @param docId 
-     * @returns 
-     */
-    private newDocAttributes(t: any, docId: string) {
+   
 
-        const now = this.timeStamp();
-
-        return {
-            created: now,
-            saved: this.serverTimestamp(),
-            creator: this.user.name,
-            creatorId: this.user.user_id,
-            edited: now,
-            original: docId || '',
-            editor: this.user.name,
-            editorId: this.user.user_id,
-            cv: this.appVersion,
-            deleted: false,
-        }
-    }
-
-    /**
-     * 
-     * @param t 
-     * @param driver 
-     * @returns 
-     */
-    private setDocAttributes(t: any, driver = this.defaultDriver) {
-        if (!t.user) return;
-        const now = this.timeStamp();
-        if (t.set._attr) {
-            t.set._attr.edited = now;
-            t.set._attr.editor = t.user.name;
-            t.set._attr.editorId = t.user.user_id;
-            t.set._attr.uv = this.appVersion;
-            t.set._attr.prev = this.docId(driver);
-            t.set._attr.updated = this.serverTimestamp(driver);
-            return;
-        }
-
-        t.set._attr = this.newDocAttributes(t, t.docId);
-    }
-
-
-    /**
-     * 
-     * @param t 
-     * @param driver 
-     * @returns 
-     */
-    private updateDocAttributes(t: any, driver = this.defaultDriver) {
-        if (!this.user) return;
-        t.update['_attr.edited'] = this.timeStamp();
-        t.update['_attr.editor'] = this.user.name;
-        t.update['_attr.editorId'] = this.user.user_id;
-        t.update['_attr.uv'] = this.appVersion;
-        t.update['_attr.prev'] = this.docId(driver);
-        t.update['_attr.updated'] = this.serverTimestamp(driver);
-        return;
-    }
-
-
-
-
+  
 
     /**
      * 
@@ -544,58 +457,7 @@ export class RxHub {
     }
 
 
-    // /**
-    //  * 
-    //  * @param doc 
-    //  * @param tag 
-    //  * @param update 
-    //  * @param driver 
-    //  */
-    // addTag(doc: Db2Doc, tag: string, update: any = {}, driver = this.defaultDriver) {
-    //     this.stream({
-    //         path: `${doc._collection}/${doc._id}`,
-    //         update: {
-    //             ...update,
-    //             'tags': this.arrayUnion(tag, driver),
-    //         }
-    //     }).subscribe()
-    // }
-
-
-    // /**
-    //  * 
-    //  * @param doc 
-    //  * @param tag 
-    //  * @param update 
-    //  * @param driver 
-    //  */
-    // removeTag(doc: Db2Doc, tag: string, update: any = {}, driver = this.defaultDriver) {
-    //     this.stream({
-    //         path: `${doc._collection}/${doc._id}`,
-    //         update: {
-    //             ...update,
-    //             'tags': this.arrayRemove(tag, driver),
-    //         }
-    //     }).subscribe()
-    // }
-
-
-    // /**
-    //  * 
-    //  * @param doc 
-    //  * @param tag 
-    //  * @param update 
-    //  * @param driver 
-    //  */
-    // toggleTag(doc: Db2Doc, tag: string, update: any = {}, driver = this.defaultDriver) {
-    //     this.stream({
-    //         path: `${doc._collection}/${doc._id}`,
-    //         update: {
-    //             ...update,
-    //             'tags': doc?.tags?.includes(tag) ? this.arrayRemove(tag, driver) : this.arrayUnion(tag, driver),
-    //         }
-    //     }).subscribe()
-    // }
+    
 
     logOut() {
         this.auth.logOut()
@@ -615,10 +477,6 @@ export class RxHub {
 
 }
 
-export function copyDoc(doc: any) {
-    const result: any = {}
-    Object.keys(doc || {}).filter((k: string) => k.charAt(0) != '_')
-        .map((key: string) => result[key] = doc[key])
-    return result;
-
+export default {
+    RxHub
 }
