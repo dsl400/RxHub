@@ -1,6 +1,7 @@
 import { RxHubAuth } from "./RxHub.Auth"
 import { RxHubDialog } from "./RxHub.Dialog"
 import { RxHubDriver } from "./RxHub.Driver"
+import { Observable } from "rxjs"
 
 
 export type RxHubConfig = {
@@ -51,10 +52,11 @@ export type RxHubBatch = RxHubTransfer | {
 }
 
 
-export type RxHubRequest = RxHubTransfer & {
+export type RxHubRequest = RxHubGet & RxHubSet & RxHubUpdate & RxHubList & RxHubCount & {
     ref: string
     docId: string
     collection: string
+    stream: <T>(source: Observable<T>) => Observable<T>;
 }
 
 

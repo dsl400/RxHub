@@ -1,11 +1,13 @@
-import { of } from 'rxjs'
+import { Subject, from, map, of, switchMap } from 'rxjs'
 import { RxHubGet, RxHubRequest, RxHubSet, RxHubUpdate } from '../../src'
 import { RxHubDriver } from '../../src/RxHub.Driver'
-import { serverTimestamp, arrayUnion, arrayRemove, doc, Firestore } from 'firebase/firestore'
+import { serverTimestamp, arrayUnion, arrayRemove, doc, Firestore, getDoc, onSnapshot, DocumentSnapshot, setDoc, updateDoc } from 'firebase/firestore'
 // import { RxHubTransfer } from '../../src/types'
 
 
 export class FirestoreClientRxHubDriver extends RxHubDriver {
+
+    private appNode = 'Test'
 
     private streams = {
         'Documents.Test.get': import('../streams/Documents.Test.get'),
@@ -24,16 +26,30 @@ export class FirestoreClientRxHubDriver extends RxHubDriver {
     }
 
     get(request: RxHubRequest) {
-        const docRef = doc(this.firestore, request.ref)
-        return of([])
+        const docRef = doc(this.firestore, `${this.appNode}/${request.ref}`)
+        const subject = new Subject<any>()
+        onSnapshot(docRef,subject)
+        return subject.pipe(map((x:DocumentSnapshot)=>x.data()),request.stream)
+
+        // return docRef.valueChanges()
     }
 
-    set(request: RxHubSet) {
 
+
+    set(request: RxHubRequest) {
+        const docRef = doc(this.firestore, `${this.appNode}/${request.ref}`)
+        return of(request.set).pipe(
+            request.stream,
+            switchMap((x:RxHubSet)=>from(setDoc(docRef,x)))
+        )
     }
 
-    update(request: RxHubUpdate) {
-
+    update(request: RxHubRequest) {
+        const docRef = doc(this.firestore, `${this.appNode}/${request.ref}`)
+        return of(request.set).pipe(
+            request.stream,
+            switchMap((x:RxHubSet)=>from(updateDoc(docRef,x)))
+        )
     }
 
     list() {
@@ -41,16 +57,16 @@ export class FirestoreClientRxHubDriver extends RxHubDriver {
     }
 
     serverTimestamp() {
-        // return serverTimestamp()
+        return serverTimestamp()
     }
 
 
     arrayUnion(element: any) {
-        // return arrayUnion(element)
+        return arrayUnion(element)
     }
 
     arrayRemove(element: any) {
-        // return arrayRemove(element)
+        return arrayRemove(element)
     }
 
     commitBatch(batch: any) {

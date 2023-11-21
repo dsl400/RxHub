@@ -1,5 +1,5 @@
 import { RxHubGet, RxHubSet, RxHubTransfer, RxHubUpdate } from ".";
-import { pipe } from "rxjs";
+import { Observable, pipe } from "rxjs";
 
 export abstract class RxHubDriver {
 
@@ -69,11 +69,11 @@ export abstract class RxHubDriver {
 
     abstract get(request: RxHubGet)
 
-    abstract set(request: RxHubSet)
+    abstract set(request: RxHubSet): Observable<any>
 
     abstract update(request: RxHubUpdate)
 
-    abstract serverTimestamp(): any
+    // abstract serverTimestamp(): any
 
     abstract docId(table?: string): string
 
