@@ -10,7 +10,7 @@ export class FirestoreClientRxHubDriver extends RxHubDriver {
     private base = 'Test'
 
     streams = {
-        // 'Documents.Test.get': import('../streams/Documents.Test.get'),
+        'Documents.Test.get': () => import('../streams/Documents.Test.get'),
         // 'Documents.Test.set': import('../streams/Documents.Test.set'),
         // 'Documents.Test.list': import('../streams/Documents.Test.list'),
         // 'Documents.Test.update': import('../streams/Documents.Test.update'),

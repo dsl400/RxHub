@@ -11,7 +11,7 @@ export class FileSystemRxHubDriver extends RxHubDriver {
     private base = 'Test'
 
 
-    private streams = {
+    streams = {
         'Documents.Test.get': import('../streams/Documents.Test.get'),
         'Documents.Test.set': import('../streams/Documents.Test.set'),
         'Documents.Test.list': import('../streams/Documents.Test.list'),
