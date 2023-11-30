@@ -56,6 +56,7 @@ export type RxHubRequest = RxHubGet & RxHubSet & RxHubUpdate & RxHubList & RxHub
     ref: string
     docId: string
     collection: string
+    action: string
     stream: <T>(source: Observable<T>) => Observable<T>;
 }
 

@@ -1,69 +1,73 @@
-import { RxHubGet, RxHubSet, RxHubTransfer, RxHubUpdate } from ".";
-import { Observable, pipe } from "rxjs";
+import { RxHubGet, RxHubRequest, RxHubSet, RxHubTransfer, RxHubUpdate, RxHubUser } from ".";
+import { Observable, from, map, of, pipe, switchMap, tap } from "rxjs";
 
 export abstract class RxHubDriver {
 
+
+    abstract streams: { [key: string]: Promise<any> }
+
     constructor(options: any = {}) { }
 
-    getStream(transfer: RxHubTransfer) {
+    // getStream(user$: Observable<RxHubUser>, transfer: RxHubTransfer):<T>(source: Observable<T>) => Observable<T> {
+    getStream(user: RxHubUser, r: RxHubRequest): any {
 
-        console.log(transfer)
+        return pipe(map(x=>x))
 
-        // const pathSplit = docPath.split('/')
-        // const moduleName = pathSplit.join('.')
+        let roles = user.roles || [];
 
-        // return (force ? of(1) : this.user$).pipe(switchMap(() => {
-        //   // console.log('reeeeeeeeeeeeeeeeeeeeady')
-        //   let stream: any = null
-        //   let roles = this.user?.claims?.roles || [];
-        //   if (!Array.isArray(roles)) roles = [];
-        //   const paths: string[] = [];
-        //   for (let r of roles) {
-        //     if (docId) paths.push(`${moduleName}.${docId}.${action}.${r}`)
-        //     paths.push(`${moduleName}.${action}.${r}`)
-        //   }
-        //   if (docId) paths.push(`${moduleName}.${docId}.${action}`)
-        //   paths.push(`${moduleName}.${action}`)
-        //   paths.sort((a, b) => b.split('.').length - a.split('.').length)
-        //   for (let p of paths) {
-        //     // console.log(p)
-        //     stream = getModule(p)
-        //     if (stream) break;
-        //   }
+        let stream = null;
 
-        //   //default set 
-        //   if (!stream && action == 'set') {
-        //     console.warn(docPath, docId, action, 'DEFAULTS SET')
-        //     stream = [pipe(map((x: any) => ({
-        //       path: x.req.ref,
-        //       set: x.req.set,
-        //       merge: x.req.merge
-        //     })))]
-        //   }
+        const moduleName = r.ref.replace('/', '.')
+        const paths: string[] = [];
+        for (let role of roles) {
+            if (r.docId) paths.push(`${moduleName}.${r.docId}.${r.action}.${role}`)
+            paths.push(`${moduleName}.${r.action}.${role}`)
+        }
+        if (r.docId) paths.push(`${moduleName}.${r.docId}.${r.action}`)
+        paths.push(`${moduleName}.${r.action}`)
+        paths.sort((a, b) => b.split('.').length - a.split('.').length)
+        for (let p of paths) {
+            // console.log(p)
+            stream = this.streams[p]
+            if (stream) {
+                stream = stream()
+                break;
+            }
 
-        //   //default set 
-        //   if (!stream && action == 'update') {
-        //     console.warn(docPath, docId, action, 'DEFAULTS UPDATE')
-        //     stream = [pipe(map((x: any) => ({
-        //       path: x.req.ref,
-        //       update: x.req.update,
-        //     })))]
-        //   }
+            //default set 
+            if (!stream && r.action == 'set') {
+                console.warn(r.ref, 'DEFAULTS SET')
+                stream = [pipe(map((x: any) => ({
+                    path: x.req.ref,
+                    set: x.req.set,
+                    merge: x.req.merge
+                })))]
+            }
 
-        //   //default get || list 
-        //   if (!stream) {
-        //     console.warn(docPath, docId, action, 'DEFAULT GET || LIST')
-        //     stream = [pipe(map((x: any) => x.doc || x.data))]
-        //   }
+            //default set 
+            if (!stream && r.action == 'update') {
+                console.warn(r.ref, 'DEFAULTS UPDATE')
+                stream = [pipe(map((x: any) => ({
+                    path: x.req.ref,
+                    update: x.req.update,
+                })))]
+            }
 
-        //   return from(stream).pipe(map((x: any) => {
-        //     return { user: this.user, stream: x.default ? x.default : x }
-        //   }));
-        // }))
+            //default get || list 
+            if (!stream) {
+                console.warn(r.ref, 'DEFAULT GET || LIST')
+                stream = [pipe(map((x: any) => x.doc || x.data))]
+            }
 
-
-
-        return pipe
+        }
+        // return of(pipe(map(x => ({ 111111111: x }))))
+        return from(stream()).pipe(
+            tap(x => console.log(1111111111111, x)),
+            map((x: any) => {
+                return { stream: x.default ? x.default : x }
+            }),
+            map(x => x)
+        );
 
     }
 
@@ -72,6 +76,8 @@ export abstract class RxHubDriver {
     abstract set(request: RxHubSet): Observable<any>
 
     abstract update(request: RxHubUpdate)
+
+    abstract list(request: RxHubUpdate)
 
     // abstract serverTimestamp(): any
 
