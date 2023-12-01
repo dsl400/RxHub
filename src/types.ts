@@ -7,8 +7,8 @@ import { Observable } from "rxjs"
 export type RxHubConfig = {
     appVersion?: string
     auth?: RxHubAuth
-    drivers:{
-        [key:string]: RxHubDriver
+    drivers: {
+        [key: string]: RxHubDriver
     }
     defaultDriver: string
     dialog?: RxHubDialog
@@ -59,6 +59,7 @@ export type RxHubRequest = RxHubGet & RxHubSet & RxHubUpdate & RxHubList & RxHub
     action: string
     collectionPath: string
     stream: <T>(source: Observable<T>) => Observable<T>;
+    options: any
 }
 
 

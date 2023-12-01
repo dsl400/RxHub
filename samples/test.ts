@@ -9,7 +9,7 @@ const firebase = initializeApp(firebaseConfig)
 
 
 const hub = new RxHub({
-    drivers:{
+    drivers: {
         'fs': new FirestoreClientRxHubDriver(getFirestore())
     },
     defaultDriver: 'fs'
@@ -17,4 +17,9 @@ const hub = new RxHub({
 
 
 
-hub.stream('Documents/Test/testDoc.get').subscribe((x)=>console.log('output:',x))
+// hub.stream('Documents/Test/testDoc.get').subscribe((x) => console.log('output:', x))
+hub.stream({
+    path: 'Documents/Test/testDoc',
+    set: { test3: 'bbbbbbbbbbbbbbbbb' },
+    options: { merge: true }
+}).subscribe((x) => console.log('output:', x))

@@ -39,7 +39,8 @@ export abstract class RxHubDriver {
         if (!stream && r.action == 'set') {
             console.warn(r.ref, 'DEFAULTS SET')
             stream = [{
-                default: pipe(map((x: any) => ({
+                default: pipe(
+                    map((x: any) => ({
                     path: x.req.ref,
                     set: x.req.set,
                     options: x.req.options

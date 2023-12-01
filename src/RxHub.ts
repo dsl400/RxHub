@@ -217,7 +217,7 @@ export class RxHub {
        */
       r.key = key
 
-      
+
 
       /**
        * get stream for curent action
@@ -236,11 +236,18 @@ export class RxHub {
                 user: u,
                 streamContext
               }
-            }).pipe(s))
+            }).pipe(s)),
+            // switchMap((x: any) => {
+
+            // }),
+            // tap(x => console.log('kkkkkkkkkkkkk', x))
           )),
         )),
       )
 
+      /**
+       * prevent accidental data alteration
+       */
       Object.seal(r);
 
       console.warn(r.ref, r.action, r.filters || r.set || r.update || '')
@@ -255,13 +262,25 @@ export class RxHub {
         read[key] = r.driver.count(r)
       } else if (r.set) {//write
         // if (q.path.includes('/Documents/') && !q.set._new) this.setDocAttributes(q.set, q.driver)
-        write[key] = r.driver.set(r)
+        write[key] = of(r).pipe(
+          r.stream,
+          switchMap((x: RxHubRequest) => {
+            if (x.path && r.set) return r.driver.set(r);
+
+            const effects = { ...x }
+            for (let [key, entry] of Object.entries(effects)) {
+              if (entry.path == r.path) effects[key] = of(entry)
+            }
+            return this.stream(effects);
+          })
+        )
       } else if (r.update) { //write
         // if (q.path.includes('/Documents/')) this.updateDocAttributes(q.update, q.driver)
         write[key] = r.driver.update(r)
       } else { //read
-        read[key] = r.driver.get(r)
+        read[key] = r.driver.get(r).pipe(r.stream)
       }
+
     }
 
 
